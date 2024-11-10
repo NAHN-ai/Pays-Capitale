@@ -1,0 +1,240 @@
+<html><head><base href="." />
+<style>
+:root {
+  --primary: #2c3e50;
+  --success: #27ae60;
+  --error: #c0392b;
+}
+
+body {
+  font-family: 'Open Sans', sans-serif;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 100vh;
+  margin: 0;
+  background: linear-gradient(135deg, #f6f8fa 0%, #e9ecef 100%);
+}
+
+.container {
+  max-width: 1000px;
+  padding: 2rem;
+  text-align: center;
+}
+
+.game-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 1fr;
+  gap: 1rem;
+  margin: 2rem 0;
+}
+
+.column {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
+.card {
+  background: white;
+  padding: 0.8rem;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: transform 0.2s;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  font-size: 0.9rem;
+  width: 180px;
+  margin: 0 auto;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+}
+
+.card.selected {
+  background: var(--primary);
+  color: white;
+}
+
+.card.correct {
+  background: var(--success);
+  color: white;
+}
+
+.card.wrong {
+  background: var(--error);
+  color: white;
+}
+
+.score {
+  font-size: 1.5rem;
+  margin: 1rem 0;
+  color: var(--primary);
+}
+
+.reset-btn {
+  background: var(--primary);
+  color: white;
+  border: none;
+  padding: 0.8rem 1.5rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: background 0.2s;
+}
+
+.reset-btn:hover {
+  background: #34495e;
+}
+
+.flag {
+  width: 30px;
+  height: 20px;
+  border: 1px solid #ddd;
+}
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>Associez les Pays à leurs Capitales</h1>
+  <p>Cliquez sur un pays puis sur sa capitale correspondante</p>
+  <div class="score">Score: <span id="score">0</span></div>
+  <div class="game-container">
+    <div class="column" id="column1"></div>
+    <div class="column" id="column2"></div>
+    <div class="column" id="column3"></div>
+    <div class="column" id="column4"></div>
+  </div>
+  <button class="reset-btn" onclick="resetGame()">Nouvelle Partie</button>
+</div>
+
+<script>
+const countryCapitals = {
+  'France': { capital: 'Paris', flag: 'https://flagcdn.com/fr.svg' },
+  'Allemagne': { capital: 'Berlin', flag: 'https://flagcdn.com/de.svg' },
+  'Espagne': { capital: 'Madrid', flag: 'https://flagcdn.com/es.svg' },
+  'Italie': { capital: 'Rome', flag: 'https://flagcdn.com/it.svg' },
+  'Portugal': { capital: 'Lisbonne', flag: 'https://flagcdn.com/pt.svg' },
+  'Royaume-Uni': { capital: 'Londres', flag: 'https://flagcdn.com/gb.svg' },
+  'Pays-Bas': { capital: 'Amsterdam', flag: 'https://flagcdn.com/nl.svg' },
+  'Belgique': { capital: 'Bruxelles', flag: 'https://flagcdn.com/be.svg' },
+  'Suisse': { capital: 'Berne', flag: 'https://flagcdn.com/ch.svg' },
+  'Autriche': { capital: 'Vienne', flag: 'https://flagcdn.com/at.svg' }
+};
+
+let selectedCountry = null;
+let score = 0;
+let pairs = new Set();
+
+function shuffle(array) {
+  return array.sort(() => Math.random() - 0.5);
+}
+
+function createCard(text, type, flag = null) {
+  const card = document.createElement('div');
+  card.className = 'card';
+  
+  if (flag) {
+    const flagImg = document.createElement('img');
+    flagImg.src = flag;
+    flagImg.alt = `Drapeau de ${text}`;
+    flagImg.className = 'flag';
+    card.appendChild(flagImg);
+  }
+  
+  const textSpan = document.createElement('span');
+  textSpan.textContent = text;
+  card.appendChild(textSpan);
+  
+  card.dataset.type = type;
+  card.dataset.value = text;
+  card.onclick = () => handleCardClick(card);
+  return card;
+}
+
+function handleCardClick(card) {
+  if (pairs.has(card.dataset.value)) return;
+  
+  if (card.dataset.type === 'country') {
+    document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+    card.classList.add('selected');
+    selectedCountry = card.dataset.value;
+  } else if (card.dataset.type === 'capital' && selectedCountry) {
+    const selectedCard = document.querySelector('.card.selected');
+    
+    if (countryCapitals[selectedCountry].capital === card.dataset.value) {
+      selectedCard.classList.remove('selected');
+      selectedCard.classList.add('correct');
+      card.classList.add('correct');
+      pairs.add(selectedCountry);
+      pairs.add(card.dataset.value);
+      score++;
+      document.getElementById('score').textContent = score;
+      selectedCountry = null;
+      
+      if (pairs.size === Object.keys(countryCapitals).length * 2) {
+        setTimeout(() => {
+          alert('Félicitations! Vous avez terminé le jeu!');
+        }, 500);
+      }
+    } else {
+      selectedCard.classList.add('wrong');
+      card.classList.add('wrong');
+      setTimeout(() => {
+        selectedCard.classList.remove('selected', 'wrong');
+        card.classList.remove('wrong');
+      }, 1000);
+      selectedCountry = null;
+    }
+  }
+}
+
+function resetGame() {
+  score = 0;
+  pairs.clear();
+  selectedCountry = null;
+  document.getElementById('score').textContent = score;
+  initializeGame();
+}
+
+function initializeGame() {
+  const columns = [
+    document.getElementById('column1'),
+    document.getElementById('column2'),
+    document.getElementById('column3'),
+    document.getElementById('column4')
+  ];
+  
+  columns.forEach(column => column.innerHTML = '');
+  
+  const allItems = [];
+  const countries = Object.keys(countryCapitals);
+  
+  countries.forEach(country => {
+    allItems.push({
+      text: country,
+      type: 'country',
+      flag: countryCapitals[country].flag
+    });
+    allItems.push({
+      text: countryCapitals[country].capital,
+      type: 'capital'
+    });
+  });
+  
+  const shuffledItems = shuffle(allItems);
+  const itemsPerColumn = Math.ceil(shuffledItems.length / 4);
+  
+  shuffledItems.forEach((item, index) => {
+    const columnIndex = Math.floor(index / itemsPerColumn);
+    const card = createCard(item.text, item.type, item.flag);
+    columns[columnIndex].appendChild(card);
+  });
+}
+
+initializeGame();
+</script>
+</body></html>
